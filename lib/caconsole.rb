@@ -1,4 +1,4 @@
-require "caconsole/version"
+require_relative "caconsole/version"
 require 'coreaudio'
 
 def get_banner
@@ -47,8 +47,31 @@ def select_output_dev
 	end
 end 
 
-
 module Caconsole
+
+buf_count = 1024
+
+in_buf  = CoreAudio.default_input_device.input_buffer(buf_count)
+# out_buf = CoreAudio.default_output_device.output_buffer(buf_count)
+
+average_val = 0;
+th = Thread.start do
+  loop do
+    w = in_buf.read(buf_count)
+    average_val = 
+    	w.map {|i| i.abs}.max
+#    	sum(abs(w))/buf_count
+  end
+end
+
+view_th = Thread.start do
+  loop do
+    p "ave:#{average_val}\n"
+    sleep 1
+  end
+end
+
+in_buf.start
 
 loop{
     print get_banner
@@ -59,5 +82,9 @@ loop{
         break
     end
 }
+
+in_buf.stop
+th.kill.join
+view_th.kill.join
 
 end
