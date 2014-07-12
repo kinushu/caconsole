@@ -2,15 +2,57 @@ require 'coreaudio'
 
 module CAConsole
 
+
 class Device
-	attr_accessor :dev
+	attr_accessor :dev, :buf_count, :in_buf, :in_ch, :in_thread
 
 	def initialize(dev)
 		@dev = dev
+
+		@buf_count = 1024
+		@in_buf = dev.input_buffer(@buf_count)
+		@in_ch  = dev.input_stream.channels
+
+		@in_thread = nil
 	end
 
 	def name
 		@dev.name
+	end
+
+def deinterleave_sample(samples, ch)
+	# input is interleave samples
+	real_sample_num = samples.size / ch
+	de_samples = []
+	for now_ch in 0..(ch-1) do
+		now_ch_samples = []
+		for smp_idx in 0..(real_sample_num-1) do
+			now_ch_samples[smp_idx] = samples[(smp_idx*ch)+now_ch]
+		end
+		de_samples[now_ch] = now_ch_samples
+	end
+
+	de_samples
+end
+
+
+	def start_input_stream
+		@in_buf.start
+		@in_thread = Thread.start do
+			loop do
+				sample = @in_buf.read(@buf_count)
+				de_smp = deinterleave_sample(sample,@in_ch)
+				yield(de_smp)
+			end
+		end
+	end
+
+	def stop_input_stream
+		@in_buf.stop
+		if !(@in_thread.nil?)
+			@in_thread.kill.join
+			@in_thread = nil
+		end
 	end
 end
 

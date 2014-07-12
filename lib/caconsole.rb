@@ -73,11 +73,40 @@ def select_output_dev
 
 end 
 
+ope_seq = 1
+smp_read_count = 0
+
 init_screen
+in_dev = CAConsole::default_input_device()
+
 begin
 	msgwin = stdscr.subwin(10,70,2,2)
 	msgwin.box(?|,?-,?*)
-#	msgwin.refresh
+
+	smp_win = Window.new(5,50,10,2)
+	in_dev.start_input_stream do |de_smp|
+		msg = ""
+		proc = true
+		de_smp.each_with_index do |sample, idx|
+			if idx == 0 #描画抑制のための一時的措置
+				smp_read_count += sample.size 
+				if smp_read_count < 4000
+					proc = false
+				else
+					smp_read_count = 0
+				end
+			end
+		    max_val = 
+		    	sample.map {|i| i.abs}.max
+		    s = sprintf("ch%02d:%05d  ", idx, max_val)
+		    msg += s
+		end
+		if proc
+			smp_win.setpos(2,2)
+		    smp_win.addstr(msg)
+		    smp_win.refresh
+		end
+	end
 
 	loop{
 		msgwin.setpos(2,2)
@@ -90,9 +119,15 @@ begin
 		when 'q' then
 		    break
 		end
+
+		ope_seq+=1
 	}
-ensure 
+rescue => e
+	p e
+ensure
+	in_dev.stop_input_stream
 	close_screen
 end
+
 
 
