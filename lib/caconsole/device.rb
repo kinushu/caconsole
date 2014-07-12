@@ -2,20 +2,38 @@ require 'coreaudio'
 
 module CAConsole
 
-def devices
-	CoreAudio::devices
+class Device
+	attr_accessor :dev
+
+	def initialize(dev)
+		@dev = dev
+	end
+
+	def name
+		@dev.name
+	end
+end
+
+def output_devices
+	devs = CoreAudio::devices
+	sel_devs = devs.select {|dev| 
+		dev.output_stream.channels > 0
+	}
+
+	sel_devs.map {|dev| Device.new(dev)}
 end
 
 def set_default_output_device(dev)
-	CoreAudio::set_default_output_device(dev)
+	ca_dev = dev.dev
+	CoreAudio::set_default_output_device(ca_dev)
 end
 
 def default_input_device
-	CoreAudio::default_input_device
+	Device.new(CoreAudio::default_input_device)
 end
 
 def default_output_device
-	CoreAudio::default_output_device
+	Device.new(CoreAudio::default_output_device)
 end
 
 def init
@@ -50,11 +68,7 @@ view_th.kill.join
 
 end
 
-class Device
-
-end
-
-module_function :devices, :set_default_output_device, :default_input_device, :default_output_device
+module_function :output_devices, :set_default_output_device, :default_input_device, :default_output_device
 
 end
 

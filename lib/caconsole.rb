@@ -1,5 +1,8 @@
 require_relative "caconsole/version"
 require_relative "caconsole/device"
+require 'curses'
+
+include Curses
 
 def get_banner
 
@@ -11,14 +14,15 @@ Default Audio Device
  #{i_s}
  #{o_s}
 Select what you want
- o: select default input device
+ o: select default output device
  q: quit
 DATA
 
 end
 
 def get_command
-	gets.chomp
+	getch
+#	gets.chomp
 end
 
 def get_command_number
@@ -27,37 +31,68 @@ end
 
 def select_output_dev
 
-	devs = CAConsole::devices
-	sel_devs = devs.select {|dev| 
-		dev.output_stream.channels > 0
-	}
+	# 出力channelあるデバイスを列挙
+	sel_devs = CAConsole::output_devices
 
-	puts 'List up output devices.'
+	msg = "List up output devices.\n"
 	sel_devs.each_with_index {|dev, idx|
-		puts "#{idx}:#{dev.name}"
+		msg += "#{idx}:#{dev.name}\n"
 	}
-	puts 'Select device? '
-	idx = get_command_number()
+	msg += "Select device? \n"
+
+	msgwin = Window.new(10,50,3,3)
+	begin
+		msgwin.box(?|,?-,?*)
+		msgwin.setpos(1,1)
+		msgwin.addstr(msg)
+		msgwin.refresh
+
+		idx = get_command_number()
+	ensure
+		msgwin.close
+	end
 
 	if dev = sel_devs[idx]
 		CAConsole::set_default_output_device(dev)
-		puts "Changed default output device #{dev.name}"
+		devmsg = "Changed default output device #{dev.name} press key"
 	else
-		puts "No changed"
+		devmsg = "No changed press key"
 	end
+
+	msgwin = Window.new(5,50,3,3)
+	begin
+		msgwin.box(?|,?-,?*)
+		msgwin.setpos(1,1)
+		msgwin.addstr(devmsg)
+		msgwin.refresh
+
+		get_command()
+	ensure
+		msgwin.close
+	end
+
 end 
 
-module CAConsole
+init_screen
+begin
+	msgwin = stdscr.subwin(10,70,2,2)
+	msgwin.box(?|,?-,?*)
+#	msgwin.refresh
 
-loop{
-    print get_banner
-    case get_command()
-    when 'o' then
-    	select_output_dev()
-    when 'q' then
-        break
-    end
-}
+	loop{
+		msgwin.setpos(2,2)
+		msgwin.addstr(get_banner)
+		msgwin.refresh
 
-
+		case get_command()
+		when 'o' then
+			select_output_dev()
+		when 'q' then
+		    break
+		end
+	}
+ensure 
+	close_screen
 end
+
+
