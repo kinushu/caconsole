@@ -17,4 +17,4 @@ jobs:
       run: |
         gem install bundler -v '~> 1.17.2'
         bundle install --jobs 4 --retry 3
-        bundle exec bin/caconsole
+        bundle exec bin/caconsole -l
