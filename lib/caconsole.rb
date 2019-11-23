@@ -72,7 +72,7 @@ DATA
 
   def print_devices
 		out_devs = audio_output_devices
-    puts "output audio devices:"
+    puts "output audio devices (#{out_devs.count}):"
 		out_devs.each_with_index {|dev, idx|
 			puts "#{idx}:#{dev.name}"
 		}
